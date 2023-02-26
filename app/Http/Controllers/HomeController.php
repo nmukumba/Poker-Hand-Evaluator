@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Exceptions\InvalidRankException;
 use App\Exceptions\InvalidSuitException;
+use App\Http\Requests\HandApiRequest;
 use App\Http\Requests\HandRequest;
 use App\Models\Card;
 use App\Models\Hand;
@@ -42,19 +43,26 @@ class HomeController extends Controller
         }
     }
 
-    public function evaluateApi(HandRequest $request): JsonResponse
+    public function evaluateApi(HandApiRequest $request): JsonResponse
     {
-        $cards = $request->validationData()['cards'];
-        $hand = new Hand($this->formatCards($cards));
-        $handEvaluator = new HandEvaluatorService($hand);
-        $evaluation = $handEvaluator->evaluateHand();
+        try {
+            $cards = $request->validationData()['cards'];
+            $hand = new Hand($this->formatCards($cards));
+            $handEvaluator = new HandEvaluatorService($hand);
+            $evaluation = $handEvaluator->evaluateHand();
 
-        $response = [
-            'success' => true,
-            'message' => $evaluation,
-        ];
-        return response()->json($response);
-
+            $response = [
+                'success' => true,
+                'message' => $evaluation,
+            ];
+            return response()->json($response);
+        } catch (InvalidRankException|InvalidSuitException $e) {
+            $response = [
+                'success' => false,
+                'message' => $e->getMessage(),
+            ];
+            return response()->json($response, 404);
+        }
     }
 
     /**
